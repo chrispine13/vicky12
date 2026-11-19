@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether Vanguard | Space Shooter</title>
+  <style>
+    :root {
+      --bg: #05070d;
+      --panel: rgba(12, 18, 32, 0.85);
+      --cyan: #00f5d4;
+      --magenta: #f72585;
+      --gold: #fee440;
+      --purple: #7209b7;
+      --text: #eef2f9;
+      --muted: #7f8ea3;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .hud {
+      width: 600px;
+      max-width: 95vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid rgba(0, 245, 212, 0.2);
+      border-radius: 12px;
+      padding: 12px 22px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .hud-group {
+      display: flex;
+      gap: 24px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .label {
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #scoreVal { color: var(--cyan); text-shadow: 0 0 10px rgba(0, 245, 212, 0.4); }
+    #comboVal { color: var(--gold); }
+    #bestVal  { color: var(--text); }
+
+    .hull-bar-bg {
+      width: 130px;
+      height: 12px;
+      background: #1a2234;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #hullBar {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--magenta), var(--cyan));
+      transition: width 0.2s ease;
+    }
+
+    .stage {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 245, 212, 0.28);
+      box-shadow: 0 0 45px rgba(0, 0, 0, 0.8);
+    }
+
+    canvas {
+      display: block;
+      background: #060913;
+      max-width: 95vw;
+      height: auto;
+      cursor: crosshair;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 7, 13, 0.84);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+      transition: opacity 0.25s ease;
+      cursor: default;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay h1 {
+      font-size: 2.6rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--cyan), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .overlay p {
+      color: var(--muted);
+      max-width: 380px;
+      line-height: 1.5;
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+
+    .btn {
+      background: transparent;
+      color: var(--cyan);
+      border: 2px solid var(--cyan);
+      padding: 13px 34px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--cyan);
+      color: var(--bg);
+      box-shadow: 0 0 25px rgba(0, 245, 212, 0.65);
+      transform: translateY(-2px);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .hint span {
+      color: var(--text);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <div class="hud">
+      <div class="hud-group">
+        <div class="stat">
+          <span class="label">Score</span>
+          <span class="val" id="scoreVal">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Multiplier</span>
+          <span class="val" id="comboVal">1x</span>
+        </div>
+        <div class="stat">
+          <span class="label">Best</span>
+          <span class="val" id="bestVal">0</span>
+        </div>
+      </div>
+
+      <div class="stat" style="align-items: flex-end;">
+        <span class="label">Hull Integrity</span>
+        <div class="hull-bar-bg">
+          <div id="hullBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <canvas id="gameCanvas" width="600" height="720"></canvas>
+
+      <div class="overlay" id="overlay">
+        <h1 id="titleText">AETHER VANGUARD</h1>
+        <p id="subText">Intercept hostile fleets, collect weapon upgrades, and chain destroys to build your multiplier.</p>
+        <button class="btn" id="startBtn">Launch Ship</button>
+      </div>
+    </div>
+
+    <div class="hint">
+      Steer with <span>Mouse</span> or <span>WASD / Arrows</span> &bull; Auto-Fire Active &bull; <span>P</span> to Pause
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Web Audio Procedural Sound Effects
+     */
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+
+      tone(freq, type, dur, vol = 0.1, endFreq = null) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if (endFreq) {
+          osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + dur);
+        }
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + dur);
+      }
+
+      laser()   { this.tone(780, 'sawtooth', 0.08, 0.06, 220); }
+      hit()     { this.tone(180, 'square', 0.06, 0.08, 90); }
+      explode() { this.tone(140, 'sawtooth', 0.28, 0.18, 35); }
+      powerup() {
+        this.tone(520, 'sine', 0.1, 0.15);
+        setTimeout(() => this.tone(780, 'sine', 0.18, 0.15), 80);
+      }
+      damage()  { this.tone(110, 'sawtooth', 0.35, 0.25, 45); }
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const sfx = new SoundFX();
+
+    // DOM Elements
+    const scoreEl = document.getElementById('scoreVal');
+    const comboEl = document.getElementById('comboVal');
+    const bestEl = document.getElementById('bestVal');
+    const hullBar = document.getElementById('hullBar');
+    const overlay = document.getElementById('overlay');
+    const titleText = document.getElementById('titleText');
+    const subText = document.getElementById('subText');
+    const startBtn = document.getElementById('startBtn');
+
+    // State
+    let state = 'MENU';
+    let score = 0;
+    let combo = 1;
+    let comboTimer = 0;
+    let bestScore = parseInt(localStorage.getItem('aetherBest')) || 0;
+    bestEl.textContent = bestScore;
+
+    let frame = 0;
+    let shake = 0;
+    let difficulty = 1;
+
+    // Entities
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height - 90,
+      radius: 18,
+      speed: 6.5,
+      hp: 100,
+      maxHp: 100,
+      weaponLevel: 1,
+      weaponTimer: 0,
+      fireCooldown: 0,
+      invuln: 0
+    };
+
+    let stars = [];
+    let bullets = [];
+    let enemies = [];
+    let particles = [];
+    let powerups = [];
+
+    // Controls
+    const keys = {};
+    let pointerActive = false;
+    let pointerX = player.x;
+    let pointerY = player.y;
+
+    window.addEventListener('keydown', (e) => {
+      keys[e.key.toLowerCase()] = true;
+      pointerActive = false;
+      if (e.key.toLowerCase() === 'p' && (state === 'PLAYING' || state === 'PAUSED')) {
+        togglePause();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (state !== 'PLAYING') return;
+      const rect = canvas.getBoundingClientRect();
+      pointerX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      pointerY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      pointerActive = true;
+    });
+
+    startBtn.addEventListener('click', () => {
+      sfx.init();
+      if (state === 'PAUSED') {
+        togglePause();
+      } else {
+        resetGame();
+      }
+    });
+
+    function togglePause() {
+      if (state === 'PLAYING') {
+        state = 'PAUSED';
+        titleText.textContent = 'SYSTEMS PAUSED';
+        subText.textContent = 'Press P or click below to re-engage.';
+        startBtn.textContent = 'Resume';
+        overlay.classList.remove('hidden');
+      } else if (state === 'PAUSED') {
+        state = 'PLAYING';
+        overlay.classList.add('hidden');
+      }
+    }
+
+    // Create Parallax Starfield
+    function initStars() {
+      stars = [];
+      for (let i = 0; i < 95; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2 + 0.6,
+          speed: Math.random() * 2.5 + 0.6,
+          alpha: Math.random() * 0.7 + 0.2
+        });
+      }
+    }
+
+    function resetGame() {
+      score = 0;
+      combo = 1;
+      comboTimer = 0;
+      difficulty = 1;
+      frame = 0;
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height - 90;
